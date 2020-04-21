@@ -46,15 +46,15 @@ app.get('/info', (req, res) => {
 app.delete('/api/persons/:id', (req, res, next) => {
     Person.findByIdAndDelete(req.params.id)
         .then(result => {
-            res.status(204).end()
+            if (result)
+                res.status(204).end()
+            else
+                res.status(404).end()
         })
         .catch(error => next(error))   
 })
 
-app.put('/api/persons/:id', (req, res, next) => {
-    if (!req.body.number)
-        return res.status(400).json({ error: 'number missing' })
-    
+app.put('/api/persons/:id', (req, res, next) => {    
     const person = {
         name: req.body.name,
         number: req.body.number,
@@ -67,20 +67,17 @@ app.put('/api/persons/:id', (req, res, next) => {
         .catch(error => next(error))
 })
 
-app.post('/api/persons', (req, res) => {
-    if (!req.body.name)
-        return res.status(400).json({ error: 'name missing' })
-    if (!req.body.number)
-        return res.status(400).json({ error: 'number missing' })
-    
+app.post('/api/persons', (req, res, next) => {
     const person = new Person({
         name: req.body.name,
         number: req.body.number
     })
 
-    person.save().then(savedPerson => {
-        res.json(savedPerson.toJSON())
-    })
+    person.save()
+        .then(savedPerson => {
+            res.json(savedPerson.toJSON())
+        })
+        .catch(error => next(error))
 })
 
 const unknownEndpoint = (req, res) => {
@@ -91,13 +88,16 @@ app.use(unknownEndpoint)
 
 const errorHandler = (error, req, res, next) => {
     console.error(error.message)
-
+    if (error.name === 'CastError')
+        return res.status(400).send({ error: 'malformatted id' })
+    if (error.name === 'ValidationError')
+        return res.status(400).json({ error: error.message })
     next(error)
 }
 
 app.use(errorHandler)
 
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })

@@ -18,9 +18,11 @@ morgan.token('data', (req, res) => {
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :data'))
 
 app.get('/api/persons', (req, res) => {
-    Person.find({}).then(persons => {
-        res.json(persons.map(person => person.toJSON()))
-    })
+    Person.find({})
+        .then(persons => persons.map(person => person.toJSON()))
+        .then(persons => {
+            res.json(persons)
+        })
 })
 
 app.get('/api/persons/:id', (req, res, next) => {
@@ -37,10 +39,11 @@ app.get('/api/persons/:id', (req, res, next) => {
 app.get('/info', (req, res) => {
     const date = new Date()
 
-    Person.countDocuments().then(count => {
-        res.send(`<p>Phonebook has info for ${count} people</p>
-        <p>${date}</p>`)
-    })
+    Person.countDocuments()
+        .then(count => {
+            res.send(`<p>Phonebook has info for ${count} people</p>
+            <p>${date}</p>`)
+        })
 })
 
 app.delete('/api/persons/:id', (req, res, next) => {
@@ -60,9 +63,10 @@ app.put('/api/persons/:id', (req, res, next) => {
         number: req.body.number,
     }
 
-    Person.findByIdAndUpdate(req.params.id, person)
+    Person.findByIdAndUpdate(req.params.id, person, {new:true, runValidators: true, context: 'query'})
+        .then(updatedPerson => updatedPerson.toJSON())
         .then(updatedPerson => {
-            res.json(updatedPerson.toJSON())
+            res.json(updatedPerson)
         })
         .catch(error => next(error))
 })
@@ -74,8 +78,9 @@ app.post('/api/persons', (req, res, next) => {
     })
 
     person.save()
+        .then(savedPerson => savedPerson.toJSON())
         .then(savedPerson => {
-            res.json(savedPerson.toJSON())
+            res.json(savedPerson)
         })
         .catch(error => next(error))
 })
